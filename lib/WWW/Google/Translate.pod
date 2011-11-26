@@ -1,0 +1,69 @@
+=head1 NAME
+
+WWW::Google::Translate - Perl interface for the Google Translate API v2
+
+=head1 SYNOPSIS
+
+  use WWW::Google::Translate;
+
+  my $gt = WWW::Google::Translate->new( {
+      key            => '<Your API key here>',
+      default_source => 'en',
+      default_target => 'ja',
+  } );
+
+  my $r = $gt->translate( { q => 'My hovercraft is full of eels' } );
+
+  for my $trans_rh (@{ $r->{data}->{translations} }) {
+
+      print $trans_rh->{translatedText}, "\n";
+  }
+
+  # Or rather ...
+  my %q = (
+      q      => 'My hovercraft is full of eels',
+      source => 'en',
+      target => 'ja',
+  );
+  my $r = $gt->translate( \%q );
+
+=head1 DESCRIPTION
+
+This module provides a convenient interface for using the
+Google Translate API v2. For complete information about the Google
+Translate API please visit:
+
+http://code.google.com/apis/language/translate/v2/getting_started.html
+
+Important: Google Translate API v2 is now available as a paid service.
+
+To use this module you must obtain an API key from Google and configure your
+Google Wallet account to pay for the service. You are subject to the
+Google TOS requirements.
+
+=head1 SEE ALSO
+
+Google Terms of Service:
+http://code.google.com/apis/language/translate/v2/terms.html
+
+Google APIs Console:
+https://code.google.com/apis/console/
+
+=head1 AUTHOR
+
+Dylan Doxey, E<lt>dylan@Ecpan.org<gt>
+
+The author of this module is not affiliated with Google. The author of
+this module assumes no responsibility for activities of the users.
+
+
+=head1 COPYRIGHT AND LICENSE
+
+Copyright (C) 2011 by Dylan Doxey
+
+This library is free software; you can redistribute it and/or modify
+it under the same terms as Perl itself, either Perl version 5.12.4 or,
+at your option, any later version of Perl 5 you may have available.
+
+
+=cut

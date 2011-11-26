@@ -1,0 +1,5 @@
+Revision history for Perl extension WWW::Google::Translate.
+
+0.01  Fri Nov 25 15:57:14 2011
+    - original version; created by h2xs 1.23 with options
+        -XA -n WWW::Google::Translate

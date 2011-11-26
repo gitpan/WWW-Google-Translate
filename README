@@ -1,0 +1,45 @@
+WWW-Google-Translate version 0.01
+=================================
+
+This module provides a convenient interface for using the
+Google Translate API v2. For complete information about the Google
+Translate API please visit:
+
+http://code.google.com/apis/language/translate/v2/getting_started.html
+
+Important: Google Translate API v2 is now available as a paid service.
+
+To use this module you must obtain an API key from Google and configure your
+Google Wallet account to pay for the service. You are subject to the
+Google TOS requirements. The author of this module is not affiliated with
+Google. The author of this module assumes no responsibility for activities
+of the users.
+
+INSTALLATION
+
+To install this module type the following:
+
+   perl Makefile.PL
+   make
+   make test
+   make install
+
+DEPENDENCIES
+
+This module requires these other modules and libraries:
+
+  Data::Dumper (for the example/api.pl program)
+  JSON
+  LWP::UserAgent
+  Readonly
+  URI
+
+COPYRIGHT AND LICENCE
+
+Put the correct copyright and licence information here.
+
+Copyright (C) 2011 by Dylan Doxey
+
+This library is free software; you can redistribute it and/or modify
+it under the same terms as Perl itself, either Perl version 5.12.4 or,
+at your option, any later version of Perl 5 you may have available.

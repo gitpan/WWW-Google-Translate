@@ -1,0 +1,7 @@
+Changes
+Makefile.PL
+MANIFEST
+README
+t/WWW-Google-Translate.t
+lib/WWW/Google/Translate.pm
+example/api.pl
