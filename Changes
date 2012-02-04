@@ -1,5 +1,9 @@
 Revision history for Perl extension WWW::Google::Translate.
 
+0.02  Sat Feb 04 11:04:24 2012
+    - on HTTP 400 error die with message suggesting this could be due to API
+      access for the current host IP with the URL to the APIs console
+
 0.01  Fri Nov 25 15:57:14 2011
     - original version; created by h2xs 1.23 with options
         -XA -n WWW::Google::Translate

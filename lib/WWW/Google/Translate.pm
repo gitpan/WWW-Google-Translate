@@ -1,6 +1,6 @@
 package WWW::Google::Translate;
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 use strict;
 use warnings;
@@ -9,13 +9,15 @@ use warnings;
     use URI;
     use JSON qw( from_json );
     use LWP::UserAgent;
+    use HTTP::Status qw( HTTP_BAD_REQUEST );
     use Readonly;
 }
 
-my ( $REST_HOST, $REST_URL );
+my ( $REST_HOST, $REST_URL, $CONSOLE_URL );
 {
-    Readonly $REST_HOST => 'www.googleapis.com';
-    Readonly $REST_URL  => "https://$REST_HOST/language/translate/v2";
+    Readonly $REST_HOST   => 'www.googleapis.com';
+    Readonly $REST_URL    => "https://$REST_HOST/language/translate/v2";
+    Readonly $CONSOLE_URL => "https://code.google.com/apis/console";
 }
 
 sub new {
@@ -131,7 +133,8 @@ sub _rest {
 
     my $url = $self->{rest_url};
 
-    my $uri = URI->new( $operation eq 'translate' ? $url : "$url/$operation" );
+    my $uri
+        = URI->new( $operation eq 'translate' ? $url : "$url/$operation" );
 
     my %form = (
         key => $self->{key},
@@ -141,8 +144,23 @@ sub _rest {
 
     my $response = $self->{ua}->get($uri);
 
-    croak "unsuccessful $operation call: ", $response->status_line()
-        if !$response->is_success();
+    if ( $response->code() == HTTP_BAD_REQUEST ) {
+
+        require Sys::Hostname;
+
+        my $host = Sys::Hostname::hostname() || 'this machine';
+        $host = uc $host;
+
+        die "unsuccessful $operation call: ", $response->status_line(),
+            "\n",
+            "check that $host is has API Access for this API key",
+            "\n",
+            "at $CONSOLE_URL\n";
+    }
+    elsif ( !$response->is_success() ) {
+
+        croak "unsuccessful $operation call: ", $response->status_line();
+    }
 
     my $json = $response->content();
 
