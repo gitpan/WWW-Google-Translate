@@ -41,6 +41,21 @@ To use this module you must obtain an API key from Google and configure your
 Google Wallet account to pay for the service. You are subject to the
 Google TOS requirements.
 
+=head1 NOTE
+
+For v0.03 there is support for queries over 2K. The API still enforces a
+size limit of 5K. Observations indicate that the UTF-8 encoding needs to be
+transformed, sometimes. If you're not happy with the automated grooming of
+UTF-8 you can suppress it by passing the transform_result boolean constructor
+option.
+
+For example:
+
+  my $gt = WWW::Google::Translate->new( {
+      key              => '<Your API key here>',
+      transform_result => 0,
+  } );
+
 =head1 SEE ALSO
 
 Google Terms of Service:
@@ -51,7 +66,7 @@ https://code.google.com/apis/console/
 
 =head1 AUTHOR
 
-Dylan Doxey, E<lt>dylan@Ecpan.org<gt>
+Dylan Doxey, <dylan@cpan.org>
 
 The author of this module is not affiliated with Google. The author of
 this module assumes no responsibility for activities of the users.

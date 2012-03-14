@@ -1,5 +1,11 @@
 Revision history for Perl extension WWW::Google::Translate.
 
+0.03  Tue Mar 13 23:22:16 2012
+    - Use the X-HTTP-Method-Override to support translate queries over 2K.
+        (The total limit is still capped at 5K.)
+    - Added transform_result parameter in case the utf8::decode transforms
+        are unwanted.
+
 0.02  Sat Feb 04 11:04:24 2012
     - on HTTP 400 error die with message suggesting this could be due to API
       access for the current host IP with the URL to the APIs console

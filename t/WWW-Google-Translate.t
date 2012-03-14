@@ -12,6 +12,7 @@ BEGIN {
     *Mock::Response::is_success = sub { return 1; };
     *Mock::Response::content    = sub { return "{}"; };
     *Mock::Response::code       = sub { return 200; };
+    *Mock::Response::header     = sub { 'no-cache'; };
 
     *LWP::UserAgent::get = sub {
         $Uri = $_[1];
