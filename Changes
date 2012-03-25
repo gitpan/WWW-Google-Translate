@@ -1,5 +1,11 @@
 Revision history for Perl extension WWW::Google::Translate.
 
+0.04  Sat Mar 25 00:38:12 2012
+    - Fixed bug for detect method
+    - Improved error response messages
+    - Added force_post constructor parameter
+    - Improved POD
+
 0.03  Tue Mar 13 23:22:16 2012
     - Use the X-HTTP-Method-Override to support translate queries over 2K.
         (The total limit is still capped at 5K.)

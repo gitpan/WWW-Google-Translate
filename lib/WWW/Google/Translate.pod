@@ -6,11 +6,12 @@ WWW::Google::Translate - Perl interface for the Google Translate API v2
 
   use WWW::Google::Translate;
 
-  my $gt = WWW::Google::Translate->new( {
-      key            => '<Your API key here>',
-      default_source => 'en',
-      default_target => 'ja',
-  } );
+  my $gt = WWW::Google::Translate->new(
+      {   key            => '<Your API key here>',
+          default_source => 'en',
+          default_target => 'ja',
+      }
+  );
 
   my $r = $gt->translate( { q => 'My hovercraft is full of eels' } );
 
@@ -19,13 +20,21 @@ WWW::Google::Translate - Perl interface for the Google Translate API v2
       print $trans_rh->{translatedText}, "\n";
   }
 
-  # Or rather ...
+  # Alternatively
   my %q = (
       q      => 'My hovercraft is full of eels',
       source => 'en',
       target => 'ja',
   );
   my $r = $gt->translate( \%q );
+
+  # Detect language
+  my %q = (
+      q      => 'My hovercraft is full of eels',
+  );
+  my $r = $gt->detect( \%q );
+
+  my $detect_rh = $r->{data}->{detections}->[0]->[0];
 
 =head1 DESCRIPTION
 
@@ -41,20 +50,99 @@ To use this module you must obtain an API key from Google and configure your
 Google Wallet account to pay for the service. You are subject to the
 Google TOS requirements.
 
-=head1 NOTE
+=head1 METHODS
 
-For v0.03 there is support for queries over 2K. The API still enforces a
-size limit of 5K. Observations indicate that the UTF-8 encoding needs to be
-transformed, sometimes. If you're not happy with the automated grooming of
-UTF-8 you can suppress it by passing the transform_result boolean constructor
-option.
+=over
 
-For example:
+=item new
 
-  my $gt = WWW::Google::Translate->new( {
-      key              => '<Your API key here>',
-      transform_result => 0,
-  } );
+The constructor expects a hash ref with the following parameters:
+
+=over
+
+=item key
+
+Your API key. The key must be configured to be used with the machine you're
+running your program on.
+
+=item default_source
+
+This is the source language for any text you'll be submitting with the
+translate method. This is optional if you would rather supply the 'source'
+parameter to the translate method.
+
+=item default_target
+
+This is the target language for any text you'll be submitting with the
+translate method. This is optional if you would rather supply the 'target'
+parameter to the translate method.
+
+=item data_format
+
+This is either 'json' or 'perl'. If you indicate 'json' then you'll get the
+raw JSON as given by the remote API. Otherwise, the JSON::from_json function
+is used to transform the result to a perl data structure. Default is 'perl'.
+
+=item timeout
+
+Use this parameter to control the timeout period given to the underlying
+LWP::UserAgent object. Default is 60 seconds.
+
+=item transform_result
+
+There are occasions when the UTF-8 encoding needs to be fixed up. This module
+attempt to detect when this is necessary and do the right thing. This option
+defaults to on. If you're not happy with the way this is turning out then you
+may set this to false.
+
+=item agent
+
+Use this to set the user-agent string used by your program when sending HTTP
+requests to the remote API.
+
+=item force_post
+
+The API docs state that 5K is the size limit per translate request. However
+the GET method limits the size to 2K. This module will force a POST type
+request if the size of your data is more than 2K. However, overvation suggests
+that your mileage may vary. If you find you're getting 414 Request-URI Too Large
+errors then you can try setting this option to 1.
+
+=back
+
+  my $gt = WWW::Google::Translate->new(
+      {   key              => '<Your API key here>',
+          default_source   => 'en',
+          default_target   => 'ja',
+          data_format      => 'perl',
+          timeout          => 60,
+          transform_result => 1,
+          agent            => 'Translate Bot',
+          force_post       => 0,
+      }
+  );
+
+=item detect
+
+Use this to auto-detect the language of a given chunk of text. Expects a
+hash ref with a 'q' paramter. Returns the data structure returned from the
+remote API.
+
+  my $d_rh        = $wgt->detect( { q => $text } );
+  my $language    = $d_rh->{data}->{detections}->[0]->[0]->{language};
+  my $is_reliable = $d_rh->{data}->{detections}->[0]->[0]->{isReliable};
+  my $confidence  = $d_rh->{data}->{detections}->[0]->[0]->{confidence};
+
+=item translate
+
+Use this to translate a given chunk of text. Expects a hash ref with a 'q'
+paramter. You may also supply 'source' and 'target' parameters. Returns the
+data structure returned from the remote API.
+
+  my $d_rh = $wgt->translate( { q => $text } );
+  $text    = $d_rh->{data}->{translations}->[0]->{translatedText};
+
+=back
 
 =head1 SEE ALSO
 
@@ -79,6 +167,5 @@ Copyright (C) 2011 by Dylan Doxey
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself, either Perl version 5.12.4 or,
 at your option, any later version of Perl 5 you may have available.
-
 
 =cut

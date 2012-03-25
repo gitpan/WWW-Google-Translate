@@ -1,6 +1,6 @@
 package WWW::Google::Translate;
 
-our $VERSION = '0.03';
+our $VERSION = '0.04';
 
 use strict;
 use warnings;
@@ -11,14 +11,19 @@ use warnings;
     use LWP::UserAgent;
     use HTTP::Status qw( HTTP_BAD_REQUEST );
     use Readonly;
+    use English qw( -no_match_vars $EVAL_ERROR );
 }
 
-my ( $REST_HOST, $REST_URL, $CONSOLE_URL, $GET_SIZE_LIMIT );
+my ( $REST_HOST, $REST_URL, $CONSOLE_URL, %SIZE_LIMIT_FOR );
 {
     Readonly $REST_HOST      => 'www.googleapis.com';
     Readonly $REST_URL       => "https://$REST_HOST/language/translate/v2";
     Readonly $CONSOLE_URL    => "https://code.google.com/apis/console";
-    Readonly $GET_SIZE_LIMIT => 1894;    # trial & error (2K)
+    Readonly %SIZE_LIMIT_FOR => (
+        translate => 1600,    # google states 2K but observed results vary
+        detect    => 1600,
+        languages => 9999,    # N/A
+    );
 }
 
 sub new {
@@ -31,6 +36,7 @@ sub new {
         data_format      => 'perl',
         timeout          => 60,
         transform_result => 1,
+        force_post       => 0,
         rest_url         => $REST_URL,
         agent            => ( sprintf '%s/%s', __PACKAGE__, $VERSION ),
     );
@@ -141,22 +147,31 @@ sub _rest {
         ? $self->{rest_url}
         : $self->{rest_url} . "/$operation";
 
+    my $force_post = $self->{force_post};
+
     my %form = (
         key => $self->{key},
         %{$arg_rh},
     );
 
-    my $response;
+    my $byte_size      = exists $form{q} ? length $form{q} : 0;
+    my $get_size_limit = $SIZE_LIMIT_FOR{$operation};
 
-    if ( exists $form{q} && $GET_SIZE_LIMIT < length $form{q} ) {
+    my ( $method, $response );
+
+    if ( $force_post || $byte_size > $get_size_limit ) {
+
+        $method = 'POST';
 
         $response = $self->{ua}->post(
             $url,
             'X-HTTP-Method-Override' => 'GET',
-            Content                  => \%form
+            'Content'                => \%form
         );
     }
     else {
+
+        $method = 'GET';
 
         my $uri = URI->new($url);
 
@@ -167,12 +182,17 @@ sub _rest {
 
     if ( $response->code() == HTTP_BAD_REQUEST ) {
 
+        my $dump = join ",\n", map {"$_ => $arg_rh->{$_}"} keys %{$arg_rh};
+
+        warn "request failed: $dump\n";
+
         require Sys::Hostname;
 
         my $host = Sys::Hostname::hostname() || 'this machine';
         $host = uc $host;
 
-        die "unsuccessful $operation call: ", $response->status_line(),
+        die "unsuccessful $operation $method for $byte_size bytes: ",
+            $response->status_line(),
             "\n",
             "check that $host is has API Access for this API key",
             "\n",
@@ -180,10 +200,11 @@ sub _rest {
     }
     elsif ( !$response->is_success() ) {
 
-        croak "unsuccessful $operation call: ", $response->status_line();
+        croak "unsuccessful $operation $method for $byte_size bytes: ",
+            $response->status_line(), "\n";
     }
 
-    my $json = $response->content();
+    my $json = $response->content() || "";
     my $cache_control = $response->header('Cache-Control') || "";
 
     if (   $self->{transform_result}
@@ -195,10 +216,20 @@ sub _rest {
     return $json
         if 'json' eq lc $self->{data_format};
 
-    my $trans_rh = from_json($json);
+    $json =~ s{ NaN }{-1}xmsg; # prevent from_json failure
+
+    my $trans_rh;
+
+    eval { $trans_rh = from_json($json); };
+
+    if ($EVAL_ERROR) {
+        warn "$json\n$EVAL_ERROR";
+        return $json;
+    }
 
     if (   $self->{transform_result}
-        && $cache_control !~ m{ no-transform }xmsi )
+        && $cache_control !~ m{ no-transform }xmsi
+        && $operation eq 'translate' )
     {
         for my $i ( keys %{$trans_rh} ) {
 
