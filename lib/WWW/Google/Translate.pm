@@ -1,6 +1,6 @@
 package WWW::Google::Translate;
 
-our $VERSION = '0.04';
+our $VERSION = '0.05';
 
 use strict;
 use warnings;
@@ -20,8 +20,8 @@ my ( $REST_HOST, $REST_URL, $CONSOLE_URL, %SIZE_LIMIT_FOR );
     Readonly $REST_URL       => "https://$REST_HOST/language/translate/v2";
     Readonly $CONSOLE_URL    => "https://code.google.com/apis/console";
     Readonly %SIZE_LIMIT_FOR => (
-        translate => 1600,    # google states 2K but observed results vary
-        detect    => 1600,
+        translate => 2000,    # google states 2K but observed results vary
+        detect    => 2000,
         languages => 9999,    # N/A
     );
 }
@@ -31,11 +31,10 @@ sub new {
 
     my %self = (
         key              => 0,
-        default_source   => 'en',
-        default_target   => 'es',
+        default_source   => 0,
+        default_target   => 0,
         data_format      => 'perl',
         timeout          => 60,
-        transform_result => 1,
         force_post       => 0,
         rest_url         => $REST_URL,
         agent            => ( sprintf '%s/%s', __PACKAGE__, $VERSION ),
@@ -54,13 +53,19 @@ sub new {
         carp "$property is not a supported parameter";
     }
 
+    for my $default (qw( default_source default_target )) {
+
+        if ( !$self{$default} ) {
+
+            delete $self{$default};
+        }
+    }
+
     croak "key is a required parameter"
         if !$self{key};
 
     croak "data_format must either be Perl or JSON"
         if $self{data_format} !~ m{\A (?: perl|json ) \z}xmsi;
-
-    $self{transform_result} = $self{transform_result} ? 1 : 0;
 
     $self{ua} = LWP::UserAgent->new();
     $self{ua}->agent( delete $self{agent} );
@@ -154,7 +159,13 @@ sub _rest {
         %{$arg_rh},
     );
 
-    my $byte_size      = exists $form{q} ? length $form{q} : 0;
+    if ( exists $arg_rh->{source} && !$arg_rh->{source} ) {
+
+        delete $form{source};
+        delete $arg_rh->{source};
+    }
+
+    my $byte_size = exists $form{q} ? length $form{q} : 0;
     my $get_size_limit = $SIZE_LIMIT_FOR{$operation};
 
     my ( $method, $response );
@@ -207,43 +218,18 @@ sub _rest {
     my $json = $response->content() || "";
     my $cache_control = $response->header('Cache-Control') || "";
 
-    if (   $self->{transform_result}
-        && $cache_control !~ m{ no-transform }xmsi )
-    {
-        utf8::decode($json);
-    }
-
     return $json
         if 'json' eq lc $self->{data_format};
 
-    $json =~ s{ NaN }{-1}xmsg; # prevent from_json failure
+    $json =~ s{ NaN }{-1}xmsg;    # prevent from_json failure
 
     my $trans_rh;
 
-    eval { $trans_rh = from_json($json); };
+    eval { $trans_rh = from_json( $json, { utf8 => 1 } ); };
 
     if ($EVAL_ERROR) {
         warn "$json\n$EVAL_ERROR";
         return $json;
-    }
-
-    if (   $self->{transform_result}
-        && $cache_control !~ m{ no-transform }xmsi
-        && $operation eq 'translate' )
-    {
-        for my $i ( keys %{$trans_rh} ) {
-
-            for my $j ( keys %{ $trans_rh->{$i} } ) {
-
-                for my $k ( 0 .. $#{ $trans_rh->{$i}->{$j} } ) {
-
-                    for my $l ( keys %{ $trans_rh->{$i}->{$j}->[$k] } ) {
-
-                        utf8::encode( $trans_rh->{$i}->{$j}->[$k]->{$l} );
-                    }
-                }
-            }
-        }
     }
 
     return $trans_rh;

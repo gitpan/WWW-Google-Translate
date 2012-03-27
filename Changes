@@ -1,5 +1,10 @@
 Revision history for Perl extension WWW::Google::Translate.
 
+0.05  Mon Mar 26 21:18:15 2012
+    - Revised handling of UTF-8
+    - Allow source parameters to be optional for auto-detect lanaguage
+    - patch from perlover@perlover.com
+
 0.04  Sat Mar 25 00:38:12 2012
     - Fixed bug for detect method
     - Improved error response messages
