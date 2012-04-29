@@ -1,5 +1,10 @@
 Revision history for Perl extension WWW::Google::Translate.
 
+0.06  Sun Apr 29 08:14:01 2012
+    - Support for the 'format' paramter
+    - Support for the 'prettyprint' paramter
+    - Improved example program
+
 0.05  Mon Mar 26 21:18:15 2012
     - Revised handling of UTF-8
     - Allow source parameters to be optional for auto-detect lanaguage

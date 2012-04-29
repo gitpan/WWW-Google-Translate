@@ -1,6 +1,6 @@
 package WWW::Google::Translate;
 
-our $VERSION = '0.05';
+our $VERSION = '0.06';
 
 use strict;
 use warnings;
@@ -31,6 +31,8 @@ sub new {
 
     my %self = (
         key              => 0,
+        format           => 0,
+        prettyprint      => 0,
         default_source   => 0,
         default_target   => 0,
         data_format      => 'perl',
@@ -89,12 +91,44 @@ sub translate {
         $self->{default_source} = $arg_rh->{source};
         $self->{default_target} = $arg_rh->{target};
 
+        my %is_supported = (
+            q           => 1,
+            source      => 1,
+            target      => 1,
+            format      => 1,
+            prettyprint => 1,
+        );
+
         my @unsupported
-            = grep { $_ ne 'q' && $_ ne 'source' && $_ ne 'target' }
+            = grep { !exists $is_supported{$_} }
             keys %{$arg_rh};
 
         croak "unsupported parameters: ", ( join ',', @unsupported )
             if @unsupported;
+
+        if ( !exists $arg_rh->{prettyprint} ) {
+
+            if ( $self->{prettyprint} ) {
+
+                $arg_rh->{prettyprint} = $self->{prettyprint};
+            }
+        }
+
+        if ( !exists $arg_rh->{format} ) {
+
+            if ( $self->{format} ) {
+
+                $arg_rh->{format} = $self->{format};
+            }
+            elsif ( $arg_rh->{q} =~ m{ < [^>]+ > }xms ) {
+
+                $arg_rh->{format} = 'html';
+            }
+            else {
+
+                $arg_rh->{format} = 'text';
+            }
+        }
 
         $result = $self->_rest( 'translate', $arg_rh );
     }
@@ -215,7 +249,7 @@ sub _rest {
             $response->status_line(), "\n";
     }
 
-    my $json = $response->content() || "";
+    my $json          = $response->content() || "";
     my $cache_control = $response->header('Cache-Control') || "";
 
     return $json

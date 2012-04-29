@@ -6,6 +6,10 @@ use lib qw( lib );
 use Data::Dumper;
 use WWW::Google::Translate;
 
+my $USAGE = <<'END_USE';
+$PROGRAM_NAME --(translate|detect|languages) --key <key> --target <lang> --source <lang> --q <text>
+END_USE
+
 my ( $key, $method, $source, $target, $q ) = ("") x 5;
 
 ARG:
@@ -56,13 +60,15 @@ while ( my $arg = shift @ARGV ) {
 
         next ARG;
     }
+    die "unrecognized arg: $arg\nUsage:$USAGE";
 }
 
-my $gt = WWW::Google::Translate->new( {
-        key            => $key,
-        default_source => 'en',
-        default_target => 'ja',
-} );
+my $gt = WWW::Google::Translate->new(
+    {   key            => $key,
+        default_source => ( $source || 'en' ),
+        default_target => ( $target || 'ja' ),
+    }
+);
 
 my $r;
 
@@ -77,6 +83,10 @@ elsif ( $method eq 'languages' ) {
 elsif ( $method eq 'detect' ) {
 
     $r = $gt->detect( { q => $q } );
+}
+else {
+
+    die $USAGE;
 }
 
 print Dumper($r);

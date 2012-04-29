@@ -24,9 +24,11 @@ BEGIN {
 # translate
 {
     my %arg = (
-        source => 'en',
-        target => 'ja',
-        q      => 'hello',
+        source      => 'en',
+        target      => 'ja',
+        format      => 'text',
+        q           => 'hello',
+        prettyprint => 1,
     );
     rest_ok( 'translate', \%arg );
 }

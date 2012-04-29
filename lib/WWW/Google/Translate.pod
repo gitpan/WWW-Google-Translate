@@ -29,9 +29,11 @@ WWW::Google::Translate - Perl interface for the Google Translate API v2
   my $wgt = WWW::Google::Translate->new( { key => '<Your API key here>' } );
 
   my $r = $wgt->translate( \%q );
-      {   q      => 'My hovercraft is full of eels',
-          source => 'en',
-          target => 'ja',
+      {   q           => 'My hovercraft is full of eels',
+          source      => 'en',
+          target      => 'ja',
+          format      => 'text',
+          prettyprint => 1,
       }
   );
 
@@ -114,6 +116,15 @@ parameter to the translate method.
 This is either 'json' or 'perl'. If you indicate 'json' then you'll get the
 raw JSON as given by the remote API. Otherwise, the JSON::from_json function
 is used to transform the result to a perl data structure. Default is 'perl'.
+
+=item format
+
+Indiate either 'text' or 'html' as the format of the source text. This module
+will attempt to auto-detect if omitted.
+
+=item prettyprint
+
+Indicate a boolean for pretty formatted result. Default is true.
 
 =item timeout
 
