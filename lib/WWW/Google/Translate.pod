@@ -144,6 +144,11 @@ request if the size of your data is more than 2K. However, overvation suggests
 that your mileage may vary. If you find you're getting 414 Request-URI Too
 Large errors then you can try setting this option to 1.
 
+=item cache_results
+
+When a true value is given the results will be cached in a temp file to
+prevent redundant API calls.
+
 =back
 
   my $wgt = WWW::Google::Translate->new(
@@ -154,6 +159,7 @@ Large errors then you can try setting this option to 1.
           timeout          => 60,
           agent            => 'Translate Bot',
           force_post       => 0,
+          cache_results    => 1,
       }
   );
 

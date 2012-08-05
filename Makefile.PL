@@ -12,6 +12,7 @@ WriteMakefile(
         'HTTP::Status'   => 0,
         'Sys::Hostname'  => 0,
         'Data::Dumper'   => '2.128',
+        'File::Spec'     => '3.33',
     },
     (
         $] >= 5.005

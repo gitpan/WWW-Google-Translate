@@ -1,5 +1,8 @@
 Revision history for Perl extension WWW::Google::Translate.
 
+0.07  Sat Aug 04 23:36:42 2012
+    - Added the cache_results constructor option
+
 0.06  Sun Apr 29 08:14:01 2012
     - Support for the 'format' paramter
     - Support for the 'prettyprint' paramter

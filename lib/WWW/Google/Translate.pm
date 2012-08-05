@@ -1,20 +1,22 @@
 package WWW::Google::Translate;
 
-our $VERSION = '0.06';
+our $VERSION = '0.07';
 
 use strict;
 use warnings;
 {
     use Carp;
     use URI;
+    use File::Spec;
     use JSON qw( from_json );
     use LWP::UserAgent;
     use HTTP::Status qw( HTTP_BAD_REQUEST );
     use Readonly;
-    use English qw( -no_match_vars $EVAL_ERROR );
+    use English qw( -no_match_vars $EVAL_ERROR $OS_ERROR );
+    use Data::Dumper;
 }
 
-my ( $REST_HOST, $REST_URL, $CONSOLE_URL, %SIZE_LIMIT_FOR );
+my ( $REST_HOST, $REST_URL, $CONSOLE_URL, %SIZE_LIMIT_FOR, $TEMP_FILE );
 {
     Readonly $REST_HOST      => 'www.googleapis.com';
     Readonly $REST_URL       => "https://$REST_HOST/language/translate/v2";
@@ -24,22 +26,24 @@ my ( $REST_HOST, $REST_URL, $CONSOLE_URL, %SIZE_LIMIT_FOR );
         detect    => 2000,
         languages => 9999,    # N/A
     );
+    Readonly $TEMP_FILE => 'www-google-translate.dat';
 }
 
 sub new {
     my ( $class, $param_rh ) = @_;
 
     my %self = (
-        key              => 0,
-        format           => 0,
-        prettyprint      => 0,
-        default_source   => 0,
-        default_target   => 0,
-        data_format      => 'perl',
-        timeout          => 60,
-        force_post       => 0,
-        rest_url         => $REST_URL,
-        agent            => ( sprintf '%s/%s', __PACKAGE__, $VERSION ),
+        key            => 0,
+        format         => 0,
+        prettyprint    => 0,
+        default_source => 0,
+        default_target => 0,
+        data_format    => 'perl',
+        timeout        => 60,
+        force_post     => 0,
+        rest_url       => $REST_URL,
+        agent          => ( sprintf '%s/%s', __PACKAGE__, $VERSION ),
+        cache_results  => 0,
     );
 
     for my $property ( keys %self ) {
@@ -55,11 +59,37 @@ sub new {
         carp "$property is not a supported parameter";
     }
 
-    for my $default (qw( default_source default_target )) {
+    for my $default (qw( cache_results default_source default_target )) {
 
         if ( !$self{$default} ) {
 
             delete $self{$default};
+        }
+    }
+
+    if ( exists $self{cache_results} ) {
+
+        my $tmpdir = File::Spec->tmpdir();
+
+        if ($tmpdir) {
+
+            $self{cache_rh}   = {};
+            $self{cache_file} = File::Spec->catfile( $tmpdir, $TEMP_FILE );
+
+            if ( stat $self{cache_file} ) {
+
+                croak $self{cache_file}, ' is not writable'
+                    if !-w $self{cache_file};
+
+                croak $self{cache_file}, ' is not readable'
+                    if !-r $self{cache_file};
+
+                $self{cache_rh} = do $self{cache_rh};
+            }
+        }
+        else {
+
+            carp 'unable to find a writable temp directory';
         }
     }
 
@@ -92,15 +122,14 @@ sub translate {
         $self->{default_target} = $arg_rh->{target};
 
         my %is_supported = (
+            format      => 1,
+            prettyprint => 1,
             q           => 1,
             source      => 1,
             target      => 1,
-            format      => 1,
-            prettyprint => 1,
         );
 
-        my @unsupported
-            = grep { !exists $is_supported{$_} }
+        my @unsupported = grep { !exists $is_supported{$_} }
             keys %{$arg_rh};
 
         croak "unsupported parameters: ", ( join ',', @unsupported )
@@ -130,7 +159,33 @@ sub translate {
             }
         }
 
+        my $cache_key;
+
+        if ( exists $self->{cache_rh} ) {
+
+            $cache_key
+                = join ',',
+                map { $arg_rh->{$_} }
+                sort grep { exists $arg_rh->{$_} }
+                keys %is_supported;
+
+            return $self->{cache_rh}->{$cache_key}
+                if exists $self->{cache_rh}->{$cache_key};
+        }
+
         $result = $self->_rest( 'translate', $arg_rh );
+
+        if ($cache_key) {
+
+            $self->{cache_rh}->{$cache_key} = $result;
+
+            my $count = keys %{ $self->{cache_rh} };
+
+            if ( $count % 10 == 0 ) {
+
+                $self->_store_cache();
+            }
+        }
     }
 
     return $result;
@@ -249,7 +304,7 @@ sub _rest {
             $response->status_line(), "\n";
     }
 
-    my $json          = $response->content() || "";
+    my $json = $response->content() || "";
     my $cache_control = $response->header('Cache-Control') || "";
 
     return $json
@@ -267,6 +322,39 @@ sub _rest {
     }
 
     return $trans_rh;
+}
+
+sub _store_cache {
+    my ($self) = @_;
+
+    return
+        if !exists $self->{cache_rh} || !exists $self->{cache_file};
+
+    my $fh;
+
+    open $fh, '>', $self->{cache_file}
+        or die 'open ', $self->{cache_file}, ": $OS_ERROR";
+
+    local $Data::Dumper::Terse     = 1;
+    local $Data::Dumper::Indent    = 1;
+    local $Data::Dumper::Quotekeys = 0;
+    local $Data::Dumper::Sortkeys  = 1;
+
+    print {$fh} Dumper( $self->{cache_rh} )
+        or die 'print ', $self->{cache_file}, ": $OS_ERROR";
+
+    close $fh
+        or die 'close ', $self->{cache_file}, ": $OS_ERROR";
+
+    return 1;
+}
+
+sub DESTROY {
+    my ($self) = @_;
+
+    $self->_store_cache();
+
+    return;
 }
 
 1;
