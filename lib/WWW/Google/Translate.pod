@@ -90,7 +90,7 @@ Google TOS requirements.
 
 =item new
 
-The constructor expects a hash ref with the following parameters:
+The constructor expects a hash ref and supports the following parameters:
 
 =over
 
@@ -140,14 +140,12 @@ requests to the remote API.
 
 The API docs state that 5K is the size limit per translate request. However
 the GET method limits the size to 2K. This module will force a POST type
-request if the size of your data is more than 2K. However, overvation suggests
-that your mileage may vary. If you find you're getting 414 Request-URI Too
-Large errors then you can try setting this option to 1.
+request if the size of your data is more than 2K. If you find you're getting
+414 Request-URI Too Large responses, try setting the force_post option to 1.
 
-=item cache_results
+=item headers
 
-When a true value is given the results will be cached in a temp file to
-prevent redundant API calls.
+You can send custom headers in the HTTP requests to the API.
 
 =back
 
@@ -159,7 +157,7 @@ prevent redundant API calls.
           timeout          => 60,
           agent            => 'Translate Bot',
           force_post       => 0,
-          cache_results    => 1,
+          headers          => { Agent => 'My Translation App' },
       }
   );
 

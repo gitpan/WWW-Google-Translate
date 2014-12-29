@@ -1,5 +1,10 @@
 Revision history for Perl extension WWW::Google::Translate.
 
+0.08  Sun Dec 28 22:33:17 2014
+    - Added support for the 'headers' constructor parameter
+    - Improved error messaging on translate failure
+    - Improved constructor parameter validation
+
 0.07  Sat Aug 04 23:36:42 2012
     - Added the cache_results constructor option
 

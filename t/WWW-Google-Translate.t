@@ -9,10 +9,11 @@ BEGIN {
 
     no warnings qw( redefine );
 
-    *Mock::Response::is_success = sub { return 1; };
-    *Mock::Response::content    = sub { return "{}"; };
-    *Mock::Response::code       = sub { return 200; };
-    *Mock::Response::header     = sub { 'no-cache'; };
+    *Mock::Response::is_success  = sub { return 1; };
+    *Mock::Response::content     = sub { return "{}"; };
+    *Mock::Response::code        = sub { return 200; };
+    *Mock::Response::header      = sub { 'no-cache'; };
+    *Mock::Response::status_line = sub { 'OK'; };
 
     *LWP::UserAgent::get = sub {
         $Uri = $_[1];

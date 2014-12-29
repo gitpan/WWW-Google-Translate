@@ -1,6 +1,6 @@
 package WWW::Google::Translate;
 
-our $VERSION = '0.07';
+our $VERSION = '0.08';
 
 use strict;
 use warnings;
@@ -44,11 +44,18 @@ sub new {
         rest_url       => $REST_URL,
         agent          => ( sprintf '%s/%s', __PACKAGE__, $VERSION ),
         cache_results  => 0,
+        headers        => {},
     );
 
     for my $property ( keys %self ) {
 
         if ( exists $param_rh->{$property} ) {
+
+            my $type          = ref $param_rh->{$property} || 'String';
+            my $expected_type = ref $self{$property}       || 'String';
+
+            croak "$property should be a $expected_type"
+                if $expected_type ne $type;
 
             $self{$property} = delete $param_rh->{$property};
         }
@@ -101,6 +108,11 @@ sub new {
 
     $self{ua} = LWP::UserAgent->new();
     $self{ua}->agent( delete $self{agent} );
+
+    if ( keys %{ $self{headers} } )
+    {
+        $self{ua}->default_header( %{ $self{headers} } );
+    }
 
     return bless \%self, $class;
 }
@@ -280,6 +292,12 @@ sub _rest {
         $response = $self->{ua}->get($uri);
     }
 
+    my $json = $response->content() || "";
+
+    my ($message) = $json =~ m{ "message" \s* : \s* "( [^"]+ )" }xms;
+
+    $message ||= $response->status_line();
+
     if ( $response->code() == HTTP_BAD_REQUEST ) {
 
         my $dump = join ",\n", map {"$_ => $arg_rh->{$_}"} keys %{$arg_rh};
@@ -292,7 +310,7 @@ sub _rest {
         $host = uc $host;
 
         die "unsuccessful $operation $method for $byte_size bytes: ",
-            $response->status_line(),
+            $message,
             "\n",
             "check that $host is has API Access for this API key",
             "\n",
@@ -300,12 +318,9 @@ sub _rest {
     }
     elsif ( !$response->is_success() ) {
 
-        croak "unsuccessful $operation $method for $byte_size bytes: ",
-            $response->status_line(), "\n";
+        croak "unsuccessful $operation $method ",
+            "for $byte_size bytes, message: $message\n";
     }
-
-    my $json = $response->content() || "";
-    my $cache_control = $response->header('Cache-Control') || "";
 
     return $json
         if 'json' eq lc $self->{data_format};
